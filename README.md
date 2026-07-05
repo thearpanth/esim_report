@@ -40,20 +40,5 @@ manufacturer's datasheet.
 └── README.md
 ```
 
-## Building from source
 
-The report is written in standard LaTeX (`report` class) and requires no exotic packages. To build it locally:
 
-```bash
-git clone https://github.com/<your-username>/<your-repo>.git
-cd <your-repo>
-pdflatex main.tex
-pdflatex main.tex   # run twice to resolve the table of contents, citations, and cross-references
-```
-
-Or open `main.tex` directly in [Overleaf](https://www.overleaf.com/) — upload the whole repository (or a zip of
-it) as a new project.
-
-## License
-
-Report text and figures © Aarpan Thapa. Feel free to open an issue or pull request if you spot an error.
