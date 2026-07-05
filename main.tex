@@ -1,0 +1,988 @@
+\documentclass[12pt,a4paper]{report}
+
+% ---------------------------------------------------------------
+% Packages
+% ---------------------------------------------------------------
+\usepackage[a4paper,margin=1in,headheight=15pt]{geometry}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage[nottoc]{tocbibind}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=blue,
+    pdftitle={Designing Integrated Circuits in eSim -- FOSSEE Semester Long Internship Report},
+    pdfauthor={Aarpan Thapa},
+    pdfsubject={eSim Subcircuit Library Development},
+    pdfkeywords={eSim, FOSSEE, IIT Bombay, NgSpice, KiCad, TTL, CMOS, Subcircuit}
+}
+
+% ---------------------------------------------------------------
+% Header / Footer
+% ---------------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Spring 2026}
+\fancyhead[R]{eSim Semester Long Internship}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyfoot[C]{\thepage}
+
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{20pt}{\Huge}
+
+% ---------------------------------------------------------------
+% Convenience commands for repeated figure blocks
+% ---------------------------------------------------------------
+\newcommand{\reportfig}[3]{%
+  \begin{figure}[H]
+    \centering
+    \includegraphics[width=#2\textwidth]{#1}
+    \caption{#3}
+  \end{figure}
+}
+
+% Convenience command for a manufacturer-datasheet reference line at the
+% top of each IC chapter, giving a direct, clickable link to the source
+% datasheet in addition to the formal bibliography entry.
+\newcommand{\datasheetref}[2]{%
+  \noindent\textit{Primary reference:} \href{#2}{#1}%
+  \par\vspace{0.6em}
+}
+
+\begin{document}
+
+% =================================================================
+% TITLE PAGE  (word format taken from Kaviya Dharshini G.'s report)
+% =================================================================
+\begin{titlepage}
+\centering
+\vspace*{0.5cm}
+
+\begin{minipage}{0.45\textwidth}
+  \centering
+  \includegraphics[width=0.55\textwidth]{figs/iitb_logo.png}
+\end{minipage}%
+\begin{minipage}{0.45\textwidth}
+  \centering
+  \includegraphics[width=0.7\textwidth]{figs/fossee_logo.png}
+\end{minipage}
+
+\vspace{1.5cm}
+
+{\Large \bfseries eSim Semester Long Internship}\\[0.2cm]
+{\large Spring 2026}\\[1cm]
+
+{\large On}\\[0.3cm]
+{\large \bfseries Designing Integrated Circuits in eSim}\\[1.5cm]
+
+{\large Submitted by}\\[0.5cm]
+
+{\Large \bfseries Aarpan Thapa}\\[0.2cm]
+{\large Department of Mechanical Engineering}\\
+{\large Thapathali Engineering Institute}\\[1.5cm]
+
+{\large Under the guidance of}\\[0.5cm]
+
+{\large \bfseries Assistant Prof. Sumanto Kar}\\
+{\large Project Research Assistant Varad Vilasrao Patil}\\
+{\large IIT Bombay}\\[2cm]
+
+\vfill
+\rule{0.4\textwidth}{0.4pt}\\[0.3cm]
+{\large February 2026}
+
+\end{titlepage}
+
+% =================================================================
+% FRONT MATTER PAGE NUMBERING (roman numerals until Chapter 1)
+% =================================================================
+\pagenumbering{roman}
+
+% =================================================================
+% ACKNOWLEDGEMENT (word format taken from Kaviya Dharshini G.'s report)
+% =================================================================
+\chapter*{Acknowledgment}
+\addcontentsline{toc}{chapter}{Acknowledgment}
+
+I would like to express my sincere gratitude to the FOSSEE team, IIT
+Bombay, for providing me the opportunity to be part of the FOSSEE
+internship programme and for supporting open-source engineering tool
+development at IIT Bombay.
+
+\vspace{0.3cm}
+I sincerely thank my mentors Mr. Sumanto Kar and Mr. Varad Vilasrao Patil
+for their continuous support, technical guidance, and encouragement
+throughout this project.
+
+\vspace{0.3cm}
+I also thank the faculty members and management of Thapathali Engineering
+Institute for their support and encouragement.
+
+\vspace{0.3cm}
+This internship has been an enriching experience, allowing me to work
+with open-source EDA tools, develop IC subcircuits in eSim, and gain
+exposure to real-world circuit modelling and simulation workflows.
+
+\newpage
+
+% =================================================================
+% EXECUTIVE SUMMARY
+% =================================================================
+\chapter*{Executive Summary}
+\addcontentsline{toc}{chapter}{Executive Summary}
+
+This report documents the work carried out during the Spring 2026 FOSSEE
+Semester Long Internship, hosted by IIT Bombay, on the theme of
+\emph{Designing Integrated Circuits in eSim}. The objective of the
+internship was to extend eSim's open-source subcircuit library with
+accurately modelled, datasheet-verified digital logic devices spanning
+several TTL and CMOS families.
+
+Ten integrated circuits were selected, modelled as hierarchical
+subcircuits using eSim's schematic editor, and validated against their
+respective manufacturer datasheets. Each device was built using a
+consistent set of generic logic-gate and flip-flop primitives, and its
+behaviour was confirmed through NgSpice-based transient simulation
+against the datasheet's function table. The contributed devices --
+counters, registers, latches, a bus buffer, a 4-bit ALU, a J-K flip-flop,
+a register file, and a multiplexer -- collectively cover a representative
+cross-section of the building blocks used in digital system design.
+
+The remainder of this report is organised as follows: Chapters~1--3
+introduce FOSSEE, eSim, and the problem statement and methodology.
+Chapters~4--13 document each contributed IC in turn, giving its general
+description, key features, applications, subcircuit symbol, datasheet
+pin diagram, test circuit, function table, and simulated output
+waveforms. Chapter~14 concludes the report and outlines directions for
+future work, and Chapter~15 summarises the complete list of
+contributions.
+
+\newpage
+
+% =================================================================
+% TABLE OF CONTENTS
+% =================================================================
+\tableofcontents
+\listoffigures
+\listoftables
+
+\newpage
+\pagenumbering{arabic}
+
+% =================================================================
+% CHAPTER 1: INTRODUCTION
+% =================================================================
+\chapter{Introduction}
+
+\section{FOSSEE}
+FOSSEE (Free/Libre and Open Source Software for Education) is an initiative
+based at IIT Bombay aimed at promoting the use of open-source software in
+education and research. It was established to reduce dependency on
+proprietary software and to encourage open-source alternatives. FOSSEE
+offers documentation, tutorials, workshops, and hands-on training to
+empower students, educators, and professionals.
+
+\section{eSim}
+eSim, created by the FOSSEE project at IIT Bombay, is a versatile
+open-source software tool for circuit design and simulation. It combines
+multiple open-source packages into one cohesive platform, making it easier
+to design, simulate, and analyse electronic circuits. eSim is particularly
+useful as an affordable alternative to proprietary EDA tools, and includes
+a subcircuit feature that enables complex hierarchical circuit design.
+
+\section{NgSpice}
+NgSpice is an open-source SPICE simulator for electric and electronic
+circuits. It simulates circuit elements such as JFETs, BJTs, MOSFETs,
+passive components (R, L, C), and diodes. Digital, analog, and mixed-signal
+circuits can all be simulated. Users input circuits as netlists, and the
+output consists of voltage and current waveforms or saved data files.
+
+\section{Makechip}
+Makechip is a platform for digital circuit design offering browser-based
+and desktop environments for coding, compiling, simulating, and debugging
+Verilog designs. eSim interfaces with Makechip via a Python-based
+application called Makechip-App.
+
+% =================================================================
+% CHAPTER 2: FEATURES OF eSim
+% =================================================================
+\chapter{Features of eSim}
+
+The objective behind eSim is to provide an open-source EDA solution for
+electronics and electrical engineers. It supports schematic creation, PCB
+design, and circuit simulation (analog, digital, and mixed-signal). Key
+features include:
+
+\begin{enumerate}
+  \item \textbf{Schematic Creation:} An easy-to-use graphical interface for
+    drawing circuit schematics with drag-and-drop components.
+  \item \textbf{Circuit Simulation:} Supports SPICE-based transient, AC,
+    and DC analysis with an integrated waveform viewer.
+  \item \textbf{PCB Design:} A PCB layout editor with DRC (Design Rule
+    Check) and Gerber file export.
+  \item \textbf{Subcircuit Feature:} Enables modular and hierarchical
+    design by integrating reusable subcircuits.
+  \item \textbf{Open Source Integration:} Integrates KiCad, NgSpice, and
+    GHDL for a comprehensive, free EDA suite.
+\end{enumerate}
+
+% =================================================================
+% CHAPTER 3: PROBLEM STATEMENT
+% =================================================================
+\chapter{Problem Statement}
+
+To design and develop various digital integrated circuit models in the
+form of sub-circuits using device model files already present in the eSim
+library. These IC models should be useful for future circuit design
+purposes by developers and users once they are successfully integrated
+into the eSim sub-circuit library.
+
+\section{Approach}
+The approach involved a systematic process leveraging datasheets from
+leading IC manufacturers such as Texas Instruments and other
+semiconductor vendors.
+
+\begin{enumerate}
+  \item \textbf{Analysing Datasheets:} In-depth review of datasheets to
+    identify ICs suitable for eSim, including scrutinising internal logic,
+    pin configurations, and truth tables.
+  \item \textbf{Subcircuit Creation:} Modelling selected ICs as
+    sub-circuits within eSim using available device model files, and
+    creating accurate symbol and pin diagrams as per the datasheet.
+  \item \textbf{Test Circuit Design:} Designing test circuits based on
+    datasheets to verify the functionality of each sub-circuit.
+  \item \textbf{Schematic Testing:} Running simulations, generating
+    waveforms, and iterating until outputs matched expected results.
+\end{enumerate}
+
+% =================================================================
+% CHAPTER 4: 74LS93
+% =================================================================
+\chapter{74LS93}
+\datasheetref{Texas Instruments SN54LS90/92/93, SN74LS90/92/93 datasheet}{https://www.ti.com/lit/ds/symlink/sn74ls93.pdf}
+
+\section{General Description}
+The 74LS93 is a 4-bit binary ripple counter from the LS (Low-power
+Schottky) TTL family. It internally consists of a divide-by-2 section
+(driven by input CKA) and a divide-by-8 section (driven by input CKB),
+which can be used independently or cascaded together (by externally
+connecting Q\textsubscript{A} to CKB) to form a divide-by-16 counter.
+Two active-HIGH master-reset inputs (R0(1) and R0(2)) reset all four
+flip-flops asynchronously when both are HIGH \cite{ls93}.
+
+\section{Key Features}
+\begin{itemize}
+  \item 4-bit ripple counter: separate divide-by-2 and divide-by-8 sections
+  \item Cascadable to form a divide-by-16 counter
+  \item Dual active-HIGH asynchronous master-reset inputs
+  \item Toggles on the HIGH-to-LOW clock transition
+  \item Standard TTL voltage operation (4.75~V -- 5.25~V)
+\end{itemize}
+
+\section{Applications}
+\begin{itemize}
+  \item Frequency division circuits
+  \item Digital clocks and event counters
+  \item Timing generation in digital systems
+  \item Building block for higher modulo counters
+\end{itemize}
+
+\section{Subcircuit Symbol}
+\reportfig{figs/ls93_symbol.png}{0.6}{Subcircuit Symbol of the 74LS93}
+
+\section{Subcircuit Schematic Diagram}
+\reportfig{figs/ls93_schematic.png}{0.95}{Subcircuit Schematic (internal gate-level structure) of the 74LS93}
+
+\section{Test Circuit}
+\reportfig{figs/ls93_test.png}{0.95}{Test Circuit of the 74LS93}
+
+\section{Function Table}
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+\textbf{Reset Inputs (R0(1), R0(2))} & \textbf{Output State} \\
+\midrule
+Both HIGH & $Q_A=Q_B=Q_C=Q_D=0$ \\
+At least one LOW & Counts (reset inactive) \\
+\bottomrule
+\end{tabular}
+\caption{Function Table of the 74LS93}
+\end{table}
+
+\section{Output Plot}
+\reportfig{figs/ls93_output.png}{0.95}{Output of the 74LS93}
+
+% =================================================================
+% CHAPTER 5: 74LS175
+% =================================================================
+\chapter{74LS175}
+\datasheetref{Texas Instruments SN54/74LS174, SN54/74LS175 datasheet}{https://www.ti.com/lit/ds/symlink/sn74ls175.pdf}
+
+\section{General Description}
+The 74LS175 is a quad D-type positive-edge-triggered flip-flop from the LS
+TTL family. All four flip-flops share a common clock and a common
+active-LOW asynchronous clear. Each flip-flop provides both true (Q) and
+complementary ($\overline{Q}$) outputs, making it suitable for building
+registers and buffered latch banks \cite{ls175}.
+
+\section{Key Features}
+\begin{itemize}
+  \item Four D-type positive-edge-triggered flip-flops
+  \item Common active-LOW clear (CLR) resets all outputs simultaneously
+  \item Complementary Q and $\overline{Q}$ outputs on every flip-flop
+  \item Single common clock input for synchronous operation
+  \item Standard TTL voltage operation
+\end{itemize}
+
+\section{Applications}
+\begin{itemize}
+  \item General-purpose data storage registers
+  \item Buffer registers between logic stages
+  \item Pattern generators
+  \item Synchronising asynchronous signals
+\end{itemize}
+
+\section{Subcircuit Symbol}
+\reportfig{figs/ls175_symbol.png}{0.6}{Subcircuit Symbol of the 74LS175}
+
+\section{Datasheet Pin Diagram}
+\reportfig{figs/ls175_pin.png}{0.55}{Pin Diagram of the 74LS175}
+
+\section{Test Circuit}
+\reportfig{figs/ls175_test.png}{0.95}{Test Circuit of the 74LS175}
+
+\section{Function Table}
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}cccc@{}}
+\toprule
+\textbf{Clear} & \textbf{Clock} & \textbf{D} & \textbf{Output ($Q$)} \\
+\midrule
+L & X & X & L \\
+H & $\uparrow$ & H & H \\
+H & $\uparrow$ & L & L \\
+H & L & X & No change \\
+\bottomrule
+\end{tabular}
+\caption{Function Table of the 74LS175}
+\end{table}
+
+\section{Output Plot}
+\reportfig{figs/ls175_output.png}{0.95}{Output of the 74LS175}
+
+% =================================================================
+% CHAPTER 6: 74LS374
+% =================================================================
+\chapter{74LS374}
+\datasheetref{Texas Instruments SN54/74LS373, SN54/74LS374 datasheet}{https://www.ti.com/lit/ds/symlink/sn74ls374.pdf}
+
+\section{General Description}
+The 74LS374 is an octal D-type edge-triggered flip-flop with 3-state
+outputs from the LS TTL family. Data on the eight D inputs is stored on
+the LOW-to-HIGH transition of the clock, and a single active-LOW
+output-enable (OE) input places all eight outputs in a high-impedance
+state when HIGH, allowing the device to drive a shared data bus
+\cite{ls374}.
+
+\section{Key Features}
+\begin{itemize}
+  \item Eight positive-edge-triggered D-type flip-flops
+  \item 3-state outputs for bus-oriented applications
+  \item Single active-LOW output-enable input
+  \item Broadside data storage in one clock edge
+  \item Standard TTL voltage operation
+\end{itemize}
+
+\section{Applications}
+\begin{itemize}
+  \item Microprocessor address/data latching
+  \item Bus-oriented register applications
+  \item Pipeline registers
+  \item I/O port expansion
+\end{itemize}
+
+\section{Subcircuit Symbol}
+\reportfig{figs/ls374_symbol.png}{0.6}{Subcircuit Symbol of the 74LS374}
+
+\section{Datasheet Pin Diagram}
+\reportfig{figs/ls374_pin.png}{0.55}{Pin Diagram of the 74LS374}
+
+\section{Test Circuit}
+\reportfig{figs/ls374_test.png}{0.95}{Test Circuit of the 74LS374}
+
+\section{Function Table}
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+\textbf{OE} & \textbf{Clock} & \textbf{D} & \textbf{Output} \\
+\midrule
+L & $\uparrow$ & H & H \\
+L & $\uparrow$ & L & L \\
+H & X & X & Hi-Z \\
+\bottomrule
+\end{tabular}
+\caption{Function Table of the 74LS374}
+\end{table}
+
+\section{Output Plot}
+\reportfig{figs/ls374_output.png}{0.95}{Output of the 74LS374}
+
+% =================================================================
+% CHAPTER 7: CD4024BC
+% =================================================================
+\chapter{CD4024BC}
+\datasheetref{Texas Instruments CD4020B, CD4024B, CD4040B datasheet}{https://www.ti.com/lit/ds/symlink/cd4024b.pdf}
+
+\section{General Description}
+The CD4024BC is a 7-stage ripple-carry binary counter from the CMOS
+4000B-series family. A single clock input drives all seven internal
+divide-by-2 stages in cascade, and a single active-HIGH asynchronous
+reset clears every stage to zero. Only three of the seven outputs
+(Q1--Q3) are typically brought out along with the higher-order taps
+Q4--Q7 required by the application \cite{cd4024}.
+
+\section{Key Features}
+\begin{itemize}
+  \item 7-stage (divide-by-128) ripple binary counter
+  \item Single-phase clock input, negative-edge triggered
+  \item Asynchronous active-HIGH reset
+  \item Wide supply voltage range: 3~V -- 18~V
+  \item Low power CMOS operation
+\end{itemize}
+
+\section{Applications}
+\begin{itemize}
+  \item Frequency division / clock generation
+  \item Timers and real-time clock circuits
+  \item Digital watches and counting instruments
+  \item General-purpose event counting
+\end{itemize}
+
+\section{Subcircuit Symbol}
+\reportfig{figs/cd4024_symbol.png}{0.6}{Subcircuit Symbol of the CD4024BC}
+
+\section{Datasheet Pin Diagram}
+\reportfig{figs/cd4024_pin.png}{0.55}{Pin Diagram of the CD4024BC}
+
+\section{Test Circuit}
+\reportfig{figs/cd4024_test.png}{0.95}{Test Circuit of the CD4024BC}
+
+\section{Function Table}
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}cc@{}}
+\toprule
+\textbf{Reset} & \textbf{Action} \\
+\midrule
+H & All outputs = 0 \\
+L & Counts on falling edge of clock \\
+\bottomrule
+\end{tabular}
+\caption{Function Table of the CD4024BC}
+\end{table}
+
+\section{Output Plot}
+\reportfig{figs/cd4024_output.png}{0.95}{Output of the CD4024BC}
+
+% =================================================================
+% CHAPTER 8: SN74LS244
+% =================================================================
+\chapter{SN74LS244}
+\datasheetref{Texas Instruments SN54/74LS240, SN54/74LS241, SN54/74LS244 datasheet}{https://www.ti.com/lit/ds/symlink/sn74ls244.pdf}
+
+\section{General Description}
+The SN74LS244 is an octal buffer/line driver with 3-state outputs from
+the LS TTL family. It is organised as two independent groups of four
+non-inverting buffers, each group controlled by its own active-LOW
+output-enable input (1$\overline{OE}$, 2$\overline{OE}$), making it well
+suited for bidirectional and high-drive bus interface applications
+\cite{ls244}.
+
+\section{Key Features}
+\begin{itemize}
+  \item Octal non-inverting buffer, organised as two groups of four
+  \item Independent active-LOW output-enable per group
+  \item High output drive current for bus/line driving
+  \item 3-state outputs for shared-bus operation
+  \item Standard TTL voltage operation
+\end{itemize}
+
+\section{Applications}
+\begin{itemize}
+  \item Bus interfacing and line driving
+  \item Address/data buffering in microprocessor systems
+  \item Clock distribution buffering
+  \item Memory and peripheral chip-select buffering
+\end{itemize}
+
+\section*{Subcircuit Assets}
+\addcontentsline{toc}{section}{Subcircuit Assets}
+The SN74LS244 subcircuit symbol, test circuit, and simulated output plots
+had not yet been exported from eSim at the time this report was compiled,
+and so are not reproduced here. Once available, they can be inserted
+using the same \verb|\reportfig| command employed throughout the other
+chapters, for example:
+\begin{verbatim}
+\reportfig{figs/ls244_symbol.png}{0.6}{Subcircuit Symbol of the SN74LS244}
+\end{verbatim}
+The functional behaviour of the device, summarised in the function table
+below, was nonetheless verified against the datasheet.
+
+\section{Function Table}
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}ccc@{}}
+\toprule
+\textbf{$\overline{OE}$} & \textbf{Input (A)} & \textbf{Output (Y)} \\
+\midrule
+L & L & L \\
+L & H & H \\
+H & X & Hi-Z \\
+\bottomrule
+\end{tabular}
+\caption{Function Table of the SN74LS244}
+\end{table}
+
+% =================================================================
+% CHAPTER 9: SN74S181
+% =================================================================
+\chapter{SN74S181}
+\datasheetref{Texas Instruments SN54/74LS181, SN54/74S181 Arithmetic Logic Unit/Function Generator datasheet}{https://www.ti.com/lit/ds/symlink/sn54ls181.pdf}
+
+\section{General Description}
+The SN74S181 is a 4-bit Arithmetic Logic Unit (ALU) built with Schottky
+TTL technology. It performs 16 logic functions and 16 arithmetic
+operations on two 4-bit operands (A and B), selected by four mode/select
+lines (S0--S3) and a mode-control input (M). It also provides carry
+generate/propagate outputs (G, P) and a comparator output (A = B) for
+building fast lookahead-carry adder/ALU systems \cite{s181}.
+
+\section{Key Features}
+\begin{itemize}
+  \item Performs 16 arithmetic and 16 logic operations on 4-bit words
+  \item Full carry lookahead generate (G) and propagate (P) outputs
+  \item Mode control input to select arithmetic or logic operation
+  \item Ripple carry input/output for cascading multiple ALU slices
+  \item A = B comparator output
+\end{itemize}
+
+\section{Applications}
+\begin{itemize}
+  \item CPU/ALU datapath design in digital computers
+  \item High-speed arithmetic and logic processing
+  \item Cascadable multi-bit ALU systems using carry lookahead
+  \item Digital comparators
+\end{itemize}
+
+\section{Subcircuit Symbol}
+\reportfig{figs/sn181_symbol.png}{0.6}{Subcircuit Symbol of the SN74S181}
+
+\section{Datasheet Pin Diagram}
+\reportfig{figs/sn181_pin.png}{0.55}{Pin Diagram of the SN74S181}
+
+\section{Test Circuit}
+\reportfig{figs/sn181_test.png}{0.95}{Test Circuit of the SN74S181}
+
+\section{Function Table}
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}ccc@{}}
+\toprule
+\textbf{Mode (M)} & \textbf{S3S2S1S0} & \textbf{Operation} \\
+\midrule
+H (Logic) & 0000 & $F = \overline{A}$ \\
+H (Logic) & 1111 & $F = A$ \\
+L (Arithmetic) & 0000 & $F = A$ (plus carry) \\
+L (Arithmetic) & 1001 & $F = A + B$ (plus carry) \\
+\bottomrule
+\end{tabular}
+\caption{Abridged Function Table of the SN74S181 (see datasheet for the complete 32-row table)}
+\end{table}
+
+\section{Output Plots}
+\reportfig{figs/sn181_output_a.png}{0.9}{Output Plot A -- Operand / Result Waveform of the SN74S181}
+\reportfig{figs/sn181_output_b.png}{0.9}{Output Plot B -- Operand / Result Waveform of the SN74S181}
+\reportfig{figs/sn181_output_f.png}{0.9}{Output Plot F -- Function Output of the SN74S181}
+\reportfig{figs/sn181_output_s.png}{0.9}{Output Plot S -- Select/Mode Control Waveform of the SN74S181}
+
+% =================================================================
+% CHAPTER 10: SN5470
+% =================================================================
+\chapter{SN5470}
+\datasheetref{Texas Instruments SN5470, SN7470 AND-Gated J-K Flip-Flop datasheet}{https://www.ti.com/product/SN5470}
+
+\section{General Description}
+The SN5470 is an AND-gated, positive-edge-triggered J-K flip-flop from the
+standard TTL logic family (the military-temperature-range counterpart of
+the SN7470). Each of the J and K inputs is formed from three AND-ed input
+lines (J1J2J3 and K1K2K3), and the device offers direct active-LOW preset
+and clear inputs in addition to the clocked J-K behaviour \cite{sn5470}.
+
+\section{Key Features}
+\begin{itemize}
+  \item AND-gated J and K inputs (three inputs ANDed per side)
+  \item Positive-edge-triggered clocking
+  \item Direct active-LOW preset and clear inputs
+  \item Complementary Q and $\overline{Q}$ outputs
+  \item Standard TTL voltage operation
+\end{itemize}
+
+\section{Applications}
+\begin{itemize}
+  \item Control logic requiring AND-gated enable conditions
+  \item Shift registers and counters
+  \item General sequential logic design
+  \item Frequency division (toggle mode)
+\end{itemize}
+
+\section{Subcircuit Symbol}
+\reportfig{figs/sn5470_symbol.png}{0.6}{Subcircuit Symbol of the SN5470}
+
+\section{Datasheet Pin Diagram}
+\reportfig{figs/sn5470_pin.png}{0.55}{Pin Diagram of the SN5470}
+
+\section{Test Circuit}
+\reportfig{figs/sn5470_test.png}{0.95}{Test Circuit of the SN5470}
+
+\section{Function Table}
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}cccc@{}}
+\toprule
+\textbf{Preset} & \textbf{Clear} & \textbf{Clock} & \textbf{Action} \\
+\midrule
+L & H & X & Q = H (asynchronous preset) \\
+H & L & X & Q = L (asynchronous clear) \\
+H & H & $\uparrow$ & Q toggles per J-K truth table \\
+\bottomrule
+\end{tabular}
+\caption{Function Table of the SN5470}
+\end{table}
+
+\section{Output Plot}
+\reportfig{figs/sn5470_output.png}{0.95}{Output of the SN5470}
+
+% =================================================================
+% CHAPTER 11: 74LS670
+% =================================================================
+\chapter{74LS670}
+\datasheetref{Texas Instruments SN54/74LS670 4-by-4 Register File datasheet}{https://www.ti.com/lit/ds/symlink/sn74ls670.pdf}
+
+\section{General Description}
+The 74LS670 is a 4-word by 4-bit register file with 3-state outputs from
+the LS TTL family. It provides independent read and write address
+decoding, so that any of the four internal 4-bit registers can be written
+to while a different (or the same) register is simultaneously read out
+through the 3-state output bus \cite{ls670}.
+
+\section{Key Features}
+\begin{itemize}
+  \item 4-word $\times$ 4-bit register file (16 flip-flops total)
+  \item Independent 2-bit read-address and write-address decoding
+  \item 3-state outputs with active-LOW output-enable
+  \item Active-LOW write-enable input
+  \item Standard TTL voltage operation
+\end{itemize}
+
+\section{Applications}
+\begin{itemize}
+  \item Small scratch-pad memories and register files
+  \item CPU general-purpose register banks
+  \item FIFO/buffer constructions
+  \item Digital signal routing and storage
+\end{itemize}
+
+\section{Subcircuit Symbol}
+\reportfig{figs/ls670_symbol.png}{0.6}{Subcircuit Symbol of the 74LS670}
+
+\section{Subcircuit Schematic Diagram}
+\reportfig{figs/ls670_schematic.png}{0.95}{Subcircuit Schematic of the 74LS670}
+
+\section{Datasheet Pin Diagram}
+\reportfig{figs/ls670_pin.png}{0.55}{Pin Diagram of the 74LS670}
+
+\section{Test Circuit}
+\reportfig{figs/ls670_test.png}{0.95}{Test Circuit of the 74LS670}
+
+\section{Function Table}
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}ccc@{}}
+\toprule
+\textbf{Write Enable} & \textbf{Output Enable} & \textbf{Action} \\
+\midrule
+L & L & Write selected word; read selected word out \\
+H & L & Read-only, selected word driven onto outputs \\
+X & H & Outputs Hi-Z \\
+\bottomrule
+\end{tabular}
+\caption{Function Table of the 74LS670}
+\end{table}
+
+% =================================================================
+% CHAPTER 12: 74LS173
+% =================================================================
+\chapter{74LS173}
+\datasheetref{Texas Instruments SN54173/SN54LS173A, SN74173/SN74LS173A 4-Bit D-Type Register datasheet}{https://www.ti.com/lit/ds/symlink/sn54ls173a.pdf}
+
+\section{General Description}
+The 74LS173 is a 4-bit D-type register with 3-state outputs from the LS
+TTL family. Data entry is controlled by two active-LOW data-input-enable
+lines, and the outputs are controlled by two active-LOW output-enable
+lines, allowing the register to be used directly on a bidirectional data
+bus. A common active-HIGH asynchronous clear resets all four bits
+\cite{ls173}.
+
+\section{Key Features}
+\begin{itemize}
+  \item Four D-type edge-triggered flip-flops with 3-state outputs
+  \item Two active-LOW data-input-enable controls
+  \item Two active-LOW output-enable controls
+  \item Common active-HIGH asynchronous master reset
+  \item Standard TTL voltage operation
+\end{itemize}
+
+\section{Applications}
+\begin{itemize}
+  \item Bus-oriented general-purpose registers
+  \item Microprocessor accumulator/register applications
+  \item Data buffering between bus segments
+  \item Temporary data storage in digital systems
+\end{itemize}
+
+\section{Subcircuit Symbol}
+\reportfig{figs/ls173_symbol.png}{0.6}{Subcircuit Symbol of the 74LS173}
+
+\section{Datasheet Pin Diagram}
+\reportfig{figs/ls173_pin.png}{0.55}{Pin Diagram of the 74LS173}
+
+\section{Test Circuit}
+\reportfig{figs/ls173_test.png}{0.95}{Test Circuit of the 74LS173}
+
+\section{Function Table}
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}cccc@{}}
+\toprule
+\textbf{Clear} & \textbf{Input Enable} & \textbf{Clock} & \textbf{Action} \\
+\midrule
+H & X & X & All outputs = 0 \\
+L & L & $\uparrow$ & Data loaded into register \\
+L & H & X & Register holds data \\
+\bottomrule
+\end{tabular}
+\caption{Function Table of the 74LS173}
+\end{table}
+
+\section{Output Plot}
+\reportfig{figs/ls173_output.png}{0.95}{Output of the 74LS173}
+
+% =================================================================
+% CHAPTER 13: 74LVC157
+% =================================================================
+\chapter{74LVC157}
+\datasheetref{Texas Instruments SN54/74LVC157A Quadruple 2-Line to 1-Line Data Selector/Multiplexer datasheet}{https://www.ti.com/lit/ds/symlink/sn74lvc157a.pdf}
+
+\section{General Description}
+The 74LVC157 is a quad 2-input multiplexer built in Low-Voltage CMOS
+(LVC) technology. It selects one of two 4-bit data sources (bus A or bus
+B) and routes it to a common set of four non-inverting outputs, under the
+control of a shared select input, with a single active-LOW enable input
+for tri-stating/disabling all outputs \cite{lvc157}.
+
+\section{Key Features}
+\begin{itemize}
+  \item Quad 2-input non-inverting multiplexer
+  \item Common select line for all four channels
+  \item Single active-LOW output-enable/disable input
+  \item Low-voltage CMOS operation (down to 1.65~V--3.6~V typical)
+  \item High-speed switching with low propagation delay
+\end{itemize}
+
+\section{Applications}
+\begin{itemize}
+  \item Data-source selection in low-voltage digital systems
+  \item Bus switching and signal routing
+  \item Portable and battery-operated equipment
+  \item Interfacing between mixed logic-level buses
+\end{itemize}
+
+\section{Subcircuit Symbol}
+\reportfig{figs/lvc157_symbol.png}{0.6}{Subcircuit Symbol of the 74LVC157}
+
+\section{Datasheet Pin Diagram}
+\reportfig{figs/lvc157_pin.png}{0.55}{Pin Diagram of the 74LVC157}
+
+\section{Test Circuit}
+\reportfig{figs/lvc157_test.png}{0.95}{Test Circuit of the 74LVC157}
+
+\section{Function Table}
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}cccc@{}}
+\toprule
+\textbf{Enable} & \textbf{Select} & \textbf{Inputs (A, B)} & \textbf{Output (Y)} \\
+\midrule
+H & X & X & L (all outputs disabled) \\
+L & L & A & Y = A \\
+L & H & B & Y = B \\
+\bottomrule
+\end{tabular}
+\caption{Function Table of the 74LVC157}
+\end{table}
+
+\section{Output Plot}
+\reportfig{figs/lvc157_output.png}{0.95}{Output of the 74LVC157}
+
+% =================================================================
+% CHAPTER 14: CONCLUSION AND FUTURE SCOPE
+% =================================================================
+\chapter{Conclusion and Future Scope}
+
+This project successfully fulfilled its objective of contributing a
+diverse set of accurately modelled digital logic ICs to the eSim
+subcircuit library. Each IC was implemented based on its manufacturer
+datasheet and verified through NgSpice-based simulation testbenches to
+confirm functional correctness against the published function table.
+
+The contributions include counters, registers, latches, a bus buffer, an
+arithmetic logic unit, a J-K flip-flop, a register file, and a
+multiplexer -- together covering a wide range of digital design building
+blocks. These verified models serve as valuable resources for students,
+educators, and researchers using eSim.
+
+\section*{Future Scope}
+\addcontentsline{toc}{section}{Future Scope}
+\begin{itemize}
+  \item Export and add the missing SN74LS244 subcircuit symbol, test
+    circuit, and output-plot figures once available.
+  \item Extend the library with additional members of the same device
+    families (e.g., the 74LS90/74LS92 counters and the 74LS373 latch)
+    using the same generic-gate modelling approach.
+  \item Package the verified subcircuits with accompanying documentation
+    directly into the official eSim library repository for community use.
+  \item As the eSim device model library continues to grow, broader
+    adoption is anticipated among the engineering community, enabling
+    increasingly sophisticated open-source circuit simulation.
+\end{itemize}
+
+% =================================================================
+% CHAPTER 15: CIRCUITS CONTRIBUTION
+% =================================================================
+\chapter{Circuits Contribution}
+
+This chapter lists all the Integrated Circuits (ICs) contributed during
+the internship. Each IC has been carefully modelled, simulated, and
+verified.
+
+\section*{Aarpan Thapa -- List of ICs}
+\begin{enumerate}
+  \item 74LS93 -- 4-Bit Binary Ripple Counter
+  \item 74LS175 -- Quad D-Type Positive-Edge-Triggered Flip-Flop
+  \item 74LS374 -- Octal D-Type Edge-Triggered Flip-Flop (3-State)
+  \item CD4024BC -- 7-Stage Ripple-Carry Binary Counter
+  \item SN74LS244 -- Octal Buffer/Line Driver (3-State)
+  \item SN74S181 -- 4-Bit Arithmetic Logic Unit (ALU)
+  \item SN5470 -- AND-Gated Positive-Edge-Triggered J-K Flip-Flop
+  \item 74LS670 -- 4-Word $\times$ 4-Bit Register File (3-State)
+  \item 74LS173 -- 4-Bit D-Type Register (3-State)
+  \item 74LVC157 -- Quad 2-Input Multiplexer (Low-Voltage CMOS)
+\end{enumerate}
+
+% =================================================================
+% BIBLIOGRAPHY
+% =================================================================
+\begin{thebibliography}{99}
+
+\bibitem{fossee}
+FOSSEE, ``FOSSEE -- Free/Libre and Open Source Software for Education,''
+IIT Bombay. [Online]. Available: \url{https://fossee.in}.
+[Accessed: Feb. 2026].
+
+\bibitem{esim}
+FOSSEE, ``eSim -- Open Source EDA Tool,'' IIT Bombay.
+[Online]. Available: \url{https://esim.fossee.in/}.
+[Accessed: Feb. 2026].
+
+\bibitem{ls93}
+Texas Instruments, \emph{SN54LS90, SN54LS92, SN54LS93, SN74LS90,
+SN74LS92, SN74LS93 Decade, Divide-by-Twelve and Binary Counters},
+datasheet. [Online].
+Available: \url{https://www.ti.com/lit/ds/symlink/sn74ls93.pdf}.
+[Accessed: Feb. 2026].
+
+\bibitem{ls175}
+Texas Instruments, \emph{SN54174, SN54175, SN54LS174, SN54LS175, SN54S174,
+SN54S175, SN74174, SN74175, SN74LS174, SN74LS175, SN74S174, SN74S175
+Flip-Flops}, datasheet. [Online].
+Available: \url{https://www.ti.com/lit/ds/symlink/sn74ls175.pdf}.
+[Accessed: Feb. 2026].
+
+\bibitem{ls374}
+Texas Instruments, \emph{SN54LS373, SN54LS374, SN54S373, SN54S374,
+SN74LS373, SN74LS374, SN74S373, SN74S374 Octal Latches and Flip-Flops
+with 3-State Outputs}, datasheet. [Online].
+Available: \url{https://www.ti.com/lit/ds/symlink/sn74ls374.pdf}.
+[Accessed: Feb. 2026].
+
+\bibitem{cd4024}
+Texas Instruments, \emph{CD4020B, CD4024B, CD4040B Types}, datasheet.
+[Online].
+Available: \url{https://www.ti.com/lit/ds/symlink/cd4024b.pdf}.
+[Accessed: Feb. 2026].
+
+\bibitem{ls244}
+Texas Instruments, \emph{SN54LS240, SN54LS241, SN54LS244, SN74LS240,
+SN74LS241, SN74LS244, SN74S240, SN74S241, SN74S244 Octal Buffers and
+Line Drivers with 3-State Outputs}, datasheet. [Online].
+Available: \url{https://www.ti.com/lit/ds/symlink/sn74ls244.pdf}.
+[Accessed: Feb. 2026].
+
+\bibitem{s181}
+Texas Instruments, \emph{SN54LS181, SN54S181, SN74LS181, SN74S181
+Arithmetic Logic Units/Function Generators}, datasheet SDLS136. [Online].
+Available: \url{https://www.ti.com/lit/ds/symlink/sn54ls181.pdf}.
+[Accessed: Feb. 2026].
+
+\bibitem{sn5470}
+Texas Instruments, \emph{SN5470, SN7470 AND-Gated J-K
+Positive-Edge-Triggered Flip-Flops with Preset and Clear}, datasheet
+SDLS116. [Online].
+Available: \url{https://www.ti.com/product/SN5470}.
+[Accessed: Feb. 2026].
+
+\bibitem{ls670}
+Texas Instruments, \emph{SN54LS670, SN74LS670 4-by-4 Register Files with
+3-State Outputs}, datasheet. [Online].
+Available: \url{https://www.ti.com/lit/ds/symlink/sn74ls670.pdf}.
+[Accessed: Feb. 2026].
+
+\bibitem{ls173}
+Texas Instruments, \emph{SN54173, SN54LS173A, SN74173, SN74LS173A
+4-Bit D-Type Registers}, datasheet. [Online].
+Available: \url{https://www.ti.com/lit/ds/symlink/sn54ls173a.pdf}.
+[Accessed: Feb. 2026].
+
+\bibitem{lvc157}
+Texas Instruments, \emph{SNx4LVC157A Quadruple 2-Line to 1-Line Data
+Selectors/Multiplexers}, datasheet. [Online].
+Available: \url{https://www.ti.com/lit/ds/symlink/sn74lvc157a.pdf}.
+[Accessed: Feb. 2026].
+
+\end{thebibliography}
+
+\end{document}

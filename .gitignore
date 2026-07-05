@@ -1,0 +1,22 @@
+# LaTeX auxiliary / build files
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.nav
+*.snm
+*.vrb
+*.bcf
+*.run.xml
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
